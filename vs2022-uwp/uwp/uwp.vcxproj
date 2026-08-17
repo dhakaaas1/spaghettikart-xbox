@@ -23,8 +23,8 @@
     <ApplicationTypeRevision>10.0</ApplicationTypeRevision>
     <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
     <ProjectName>SpaghettiKart</ProjectName>
-    <!-- Matches the CMake configure/build commands in .github/workflows/uwp-compile.yml:
-         `cmake -S . -B build\x64 ...` then `cmake --build build\x64 --config <Config>`. -->
+    <!-- Matches the CMake configure and build commands in .github/workflows/uwp-compile.yml
+         (configure into build\x64, then build with the given Config). -->
     <RecompBase>$(SolutionDir)../build/x64/</RecompBase>
     <RecompDebugBuild>$(RecompBase)Debug/</RecompDebugBuild>
     <RecompReleaseBuild>$(RecompBase)Release/</RecompReleaseBuild>
@@ -180,9 +180,9 @@
     <Import Project="$(VSINSTALLDIR)\Common7\IDE\Extensions\Microsoft\VsGraphics\ShaderGraphContentTask.targets" />
   </ImportGroup>
   <!-- Bin deps: DLLs and data files copied into the MSIX package. mk64.o2r is
-       deliberately NOT here -- it's generated on-device from the user's ROM via the
-       boot menu, never bundled. spaghetti.o2r IS bundled: it's built from this repo's
-       own assets/ folder (torch pack, no ROM involved), safe to build in CI. -->
+       deliberately not here: it's generated on-device from the user's ROM via the
+       boot menu, never bundled. spaghetti.o2r is bundled: it's built from this repo's
+       own assets folder (torch pack, no ROM involved), safe to build in CI. -->
   <ItemGroup>
     <Content Include="$(RecompBin)*.dll">
       <Link>%(Filename)%(Extension)</Link>
