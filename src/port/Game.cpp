@@ -1021,12 +1021,6 @@ void CM_ThrowRuntimeError(const char* fmt, ...) {
 #endif
 
 #ifdef _WIN32
-#ifdef _UWP
-// The UWP host app (vs2022-uwp/uwp) is a separate executable that links this game
-// as a DLL and calls SDL_WinRTRunApp(SDL_main, nullptr) from its own WinRT entry
-// point, so SDL_main needs to be visible across the DLL boundary.
-extern "C" __declspec(dllexport)
-#endif
 int SDL_main(int argc, char** argv) {
 #else
 #if defined(__cplusplus) && defined(PLATFORM_IOS)
@@ -1096,3 +1090,14 @@ extern "C"
     // Mirrors the _Exit precedent on the extraction error paths.
     _Exit(0);
 }
+
+#ifdef _UWP
+// SDL_main.h already declares SDL_main (without dllexport), so exporting the
+// definition above directly conflicts with that declaration's linkage. The UWP
+// host app (vs2022-uwp/uwp) is a separate executable that links this game as a
+// DLL and needs to reach SDL_main across that boundary to hand it to
+// SDL_WinRTRunApp -- do that through this thin exported wrapper instead.
+extern "C" __declspec(dllexport) int SpaghettiKart_SDL_main(int argc, char** argv) {
+    return SDL_main(argc, argv);
+}
+#endif

@@ -1,9 +1,11 @@
 // UWP app entry point. Adapted from 2ship2harkinian-uwp's
 // vs2022-uwp/uwp/src/main.cpp (SternXD). SDL2's WinRT support expects the app to call
-// SDL_WinRTRunApp(SDL_main, nullptr) from its own WinMain rather than providing WinMain
-// itself; bootstrap() runs first to make sure mk64.o2r exists (via the boot menu) before
-// handing off to the game's real entry point (SDL_main, exported from Spaghettify.dll --
-// see src/port/Game.cpp).
+// SDL_WinRTRunApp() from its own WinMain rather than providing WinMain itself; bootstrap()
+// is what gets passed to it, and runs first to make sure mk64.o2r exists (via the boot
+// menu) before handing off to the game's real entry point. That's SpaghettiKart_SDL_main,
+// a thin exported wrapper around SDL_main (see src/port/Game.cpp) rather than SDL_main
+// itself -- SDL_main.h already declares SDL_main without dllexport, so redeclaring it here
+// with dllimport would conflict.
 #include <Windows.h>
 #include "SDL2/SDL.h"
 #include "bootmenu.h"
@@ -15,7 +17,7 @@
 #include <winrt/base.h>
 
 extern "C" __declspec(dllimport) void* uwp_GetWindowReference();
-extern "C" __declspec(dllimport) int SDL_main(int argc, char** argv);
+extern "C" __declspec(dllimport) int SpaghettiKart_SDL_main(int argc, char** argv);
 
 namespace {
 // Mirrors bootmenu.cpp's GetAuxRoot() / libultraship's Context::GetPathRelativeToAuxiliary:
@@ -99,7 +101,7 @@ int bootstrap(int argc, char** argv) {
         }
     }
 
-    return SDL_main(argc, argv);
+    return SpaghettiKart_SDL_main(argc, argv);
 }
 
 int CALLBACK WinMain(HINSTANCE, HINSTANCE, LPSTR argv, int argc) {

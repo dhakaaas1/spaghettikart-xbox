@@ -178,7 +178,7 @@ void GameExtractor::GetRoms(std::vector<std::string>& roms) {
         if (file.is_directory())
             continue;
         if (file.path().extension() == ".z64") {
-            roms.push_back((file.path()));
+            roms.push_back(file.path().string());
         }
     }
 #endif
