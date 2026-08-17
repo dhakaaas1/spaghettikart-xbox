@@ -8,6 +8,10 @@
 #include <variant>
 #include <tuple>
 
+#ifdef _UWP
+#include "port/WinRTKeyboard.h"
+#endif
+
 extern "C" {
     extern s32 gGamestateNext;
     extern s32 gMenuSelection;
@@ -473,6 +477,22 @@ void Menu::Draw() {
 }
 
 void Menu::DrawElement() {
+#ifdef _UWP
+    static bool keyboardInitialized = false;
+    if (!keyboardInitialized) {
+        InitializeKeyboardInput();
+        keyboardInitialized = true;
+    }
+    ProcessCharacterBuffer();
+    static bool wasInputActive = false;
+    bool isInputActive = ImGui::GetIO().WantTextInput;
+    if (isInputActive && !wasInputActive) {
+        ShowKeyboard();
+    } else if (!isInputActive && wasInputActive) {
+        HideKeyboard();
+    }
+    wasInputActive = isInputActive;
+#endif
     for (auto& [reason, info] : disabledMap) {
         info.active = info.evaluation(info);
     }

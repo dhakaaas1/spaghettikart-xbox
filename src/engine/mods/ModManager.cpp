@@ -58,6 +58,16 @@ void UnloadMods() {
 // at this point, which segfaults — a crash report on what should be a clean quit (e.g. when
 // the user declines the first-run "Generate one now?" prompt).
 void GenerateAssetsMods() {
+#ifdef _UWP
+    // Shouldn't happen: the boot menu (vs2022-uwp/uwp) already guarantees mk64.o2r
+    // exists in aux storage before this DLL is ever loaded. If it's still missing,
+    // there's no interactive ROM picker available inside the AppContainer sandbox
+    // to fall back to (unlike desktop's Yes/No -> file dialog flow above), so just
+    // report it and quit rather than showing a prompt whose "Yes" path can't work.
+    GameEngine::ShowMessage("No O2R Files",
+                            "mk64.o2r was not found. Relaunch the app and use the boot menu to select your ROM.");
+    _Exit(1);
+#else
     if (GameEngine::ShowYesNoBox("No O2R Files", "No O2R files found. Generate one now?") == IDYES) {
         if (!GameEngine::GenAssetFile()) {
             GameEngine::ShowMessage("Error", "An error occured, no O2R file was generated.\n\nExiting...");
@@ -66,10 +76,18 @@ void GenerateAssetsMods() {
     } else {
         _Exit(1);
     }
+#endif
 }
 
 std::vector<std::string> ListMods() {
+#ifndef _UWP
     const std::string main_path = Ship::Context::GetPathRelativeToAppDirectory(game_asset_file);
+#else
+    // UWP apps can't write to their own package install directory, so mk64.o2r
+    // (generated on-device from the user's ROM, see GameExtractor::GenerateOTR)
+    // and the mods folder both live on the aux drive (D:\ or E:\) instead.
+    const std::string main_path = Ship::Context::GetPathRelativeToAuxiliary(game_asset_file);
+#endif
     const std::string assets_path = Ship::Context::LocateFileAcrossAppDirs(engine_asset_file);
 
     std::vector<std::string> archiveFiles;
@@ -84,7 +102,11 @@ std::vector<std::string> ListMods() {
         archiveFiles.push_back(assets_path);
     }
 
+#ifndef _UWP
     const std::string mods_path = Ship::Context::GetPathRelativeToAppDirectory("mods");
+#else
+    const std::string mods_path = Ship::Context::GetPathRelativeToAuxiliary("mods");
+#endif
 
     // Create mods folder if it doesn't exist
     if (!std::filesystem::exists(mods_path)) {
@@ -209,7 +231,11 @@ void AddCoreDependencies() {
 }
 
 void CheckMK64O2RExists() {
+#ifndef _UWP
     const std::string main_path = Ship::Context::GetPathRelativeToAppDirectory(game_asset_file);
+#else
+    const std::string main_path = Ship::Context::GetPathRelativeToAuxiliary(game_asset_file);
+#endif
 
     if (!std::filesystem::exists(main_path)) {
         GenerateAssetsMods();

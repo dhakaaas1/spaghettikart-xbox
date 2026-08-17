@@ -214,7 +214,13 @@ bool GameExtractor::LoadRomFromPath(const std::string& path) {
 
 bool GameExtractor::GenerateOTR() const {
     const std::string assets_path = Ship::Context::GetAppBundlePath();
+#ifndef _UWP
     const std::string game_path = Ship::Context::GetAppDirectoryPath();
+#else
+    // The package install directory is read-only under UWP; write mk64.o2r to the
+    // same aux drive (D:\ or E:\) that ModManager::ListMods() reads it back from.
+    const std::string game_path = Ship::Context::GetPathRelativeToAuxiliary("");
+#endif
 
     Companion::Instance = new Companion(this->mGameData, ArchiveType::O2R, false, assets_path, game_path);
     Companion::Instance->SetAdditionalFiles({ "meta/mods.toml" });
