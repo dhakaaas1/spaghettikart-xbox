@@ -80,5 +80,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: spaghettikart-uwp-x64
-          path: vs2022-uwp/uwp/AppPackages/**/*.msixbundle
+          # AppPackages lands next to the .slnx (solution-relative), not under uwp/.
+          path: vs2022-uwp/AppPackages/**/*.msixbundle
           retention-days: 14
