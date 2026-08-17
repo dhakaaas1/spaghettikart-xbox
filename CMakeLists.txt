@@ -28,6 +28,34 @@ if(ENABLE_VCPKG)
   include(cmake/dependencies/vcpkg.cmake)
 endif()
 
+# Builds Spaghettify as a shared library (instead of an .exe) with _UWP defined,
+# for consumption by the separate vs2022-uwp MSBuild host app that packages it as
+# a UWP AppContainer app (see vs2022-uwp/README.md). Off by default: it only
+# applies to the dedicated UWP CI job, never the normal desktop Windows build.
+option(SPAGHETTIKART_UWP "Build as a UWP AppContainer target (Xbox Dev Mode)" OFF)
+if(SPAGHETTIKART_UWP)
+  if(NOT WIN32)
+    message(FATAL_ERROR "SPAGHETTIKART_UWP requires a Windows (MSVC) build")
+  endif()
+
+  add_compile_definitions(_UWP=1)
+  set(LUS_UWP ON CACHE BOOL "Build libultraship for UWP" FORCE)
+
+  # Prebuilt WinRT-safe SDL2 (vcpkg's desktop build links GDI-based window/context
+  # creation, unavailable in the AppContainer sandbox) plus libuwp, a small helper
+  # DLL exporting the CoreWindow/refresh-rate/screen-size glue (uwp_GetWindowReference,
+  # uwp_GetRefreshRate, uwp_GetScreenSize, uwp_ProcessEvents) that both this game DLL
+  # and the separate vs2022-uwp host app link against and call into. Defines CMake
+  # IMPORTED targets SDL2/LIBUWP/GLFW3 (GLFW3 unused here) -- see its CMakeLists.txt.
+  # Same repo 2ship2harkinian-uwp's libultraship fork builds against.
+  FetchContent_Declare(
+    UwpLibs
+    GIT_REPOSITORY https://github.com/SternXD/uwp-dep.git
+    GIT_TAG d6a6acc403a21a8a60bfbe6cd3a7cbafdf91df15
+  )
+  FetchContent_MakeAvailable(UwpLibs)
+endif()
+
 set(SPAGHETTIKART_IOS OFF)
 if(IOS OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
   set(SPAGHETTIKART_IOS ON)
@@ -126,7 +154,13 @@ if(SPAGHETTIKART_IOS)
 
 endif()
 
-add_executable(${PROJECT_NAME} ${ALL_FILES})
+if(SPAGHETTIKART_UWP)
+  # The separate vs2022-uwp MSBuild host app owns the actual .exe/AppContainer
+  # entry point; this target just needs to be a DLL it can link and load.
+  add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
+else()
+  add_executable(${PROJECT_NAME} ${ALL_FILES})
+endif()
 target_include_directories(
   ${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                           ${CMAKE_CURRENT_SOURCE_DIR}/include

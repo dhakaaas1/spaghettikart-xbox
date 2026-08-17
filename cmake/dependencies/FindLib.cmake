@@ -1,6 +1,13 @@
 if(WIN32)
   find_package(Ogg CONFIG REQUIRED)
   find_package(Vorbis CONFIG REQUIRED)
+  if(SPAGHETTIKART_UWP)
+    # LIBUWP: the CoreWindow/refresh-rate/screen-size glue DLL (see the UwpLibs
+    # FetchContent block in the root CMakeLists.txt). WindowsApp: the umbrella
+    # WinRT/UWP import lib needed for any Windows.* API surface calls; required
+    # for an AppContainer-targeted binary to link at all.
+    list(APPEND ADDITIONAL_LIBRARY_DEPENDENCIES LIBUWP WindowsApp)
+  endif()
 elseif(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
   set(ADDITIONAL_LIBRARY_DEPENDENCIES -lglad SDL2::SDL2)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
