@@ -1,0 +1,19 @@
+# MSBuild / Visual Studio build output
+uwp/bin/
+uwp/obj/
+uwp/AppPackages/
+uwp/BundleArtifacts/
+*.appx
+*.appxbundle
+*.appxupload
+*.msix
+*.msixbundle
+*.msixupload
+
+# Never commit a real signing identity -- CI generates a throwaway self-signed
+# cert on every run (see .github/workflows/uwp-compile.yml) and never persists it.
+*.pfx
+
+# Visual Studio user-specific files
+*.vcxproj.user
+.vs/

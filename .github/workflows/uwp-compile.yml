@@ -1,0 +1,78 @@
+name: UWP Build (Xbox Dev Mode)
+
+# This never touches the ROM. It builds Spaghettify.dll (SPAGHETTIKART_UWP=ON),
+# spaghetti.o2r (built from this repo's own assets/ folder, no ROM involved), and
+# packages both into an .msixbundle via the vs2022-uwp/uwp MSBuild project. mk64.o2r
+# (the ROM-derived asset archive) is generated on-device after sideloading, via the
+# boot menu -- see vs2022-uwp/README.md.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "vs2022-uwp/**"
+      - "CMakeLists.txt"
+      - "cmake/**"
+      - "src/**"
+      - "include/**"
+      - "libultraship"
+      - "torch"
+      - "config.yml"
+      - "yamls/**"
+      - "meta/**"
+      - ".github/workflows/uwp-compile.yml"
+
+jobs:
+  build-uwp:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: recursive
+
+      - name: Configure CMake (SPAGHETTIKART_UWP)
+        run: |
+          cmake -S . -B build/x64 -G "Visual Studio 17 2022" -T v143 -A x64 `
+            -DCMAKE_BUILD_TYPE=Release -DSPAGHETTIKART_UWP=ON
+
+      - name: Build Spaghettify.dll
+        run: cmake --build build/x64 --config Release --target Spaghettify --parallel 4
+
+      - name: Build spaghetti.o2r (repo assets only, no ROM)
+        run: cmake --build build/x64 --config Release --target GenerateO2R --parallel 4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Generate throwaway signing certificate
+        shell: pwsh
+        run: |
+          $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=SpaghettiKart-Xbox-Port" `
+            -KeyUsage DigitalSignature -FriendlyName "SpaghettiKart UWP CI Cert" `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+          $pwd = ConvertTo-SecureString -String "ci-throwaway" -Force -AsPlainText
+          Export-PfxCertificate -Cert $cert -FilePath vs2022-uwp/uwp/SpaghettiKart_TemporaryKey.pfx -Password $pwd
+        # Signed with a fresh self-signed identity every run -- never persisted or
+        # committed. Sideloading via Xbox Dev Mode's Device Portal doesn't require a
+        # trusted CA, just a package whose signature is internally valid.
+
+      - name: Build UWP package (uwp.vcxproj)
+        run: >
+          msbuild vs2022-uwp/uwp/uwp.vcxproj
+          /p:Configuration=Release /p:Platform=x64
+          /p:UapAppxPackageBuildMode=SideloadOnly
+          /p:AppxBundle=Always /p:AppxBundlePlatforms=x64
+          /p:PackageCertificateKeyFile=SpaghettiKart_TemporaryKey.pfx
+          /p:PackageCertificatePassword=ci-throwaway
+          /restore
+
+      - name: Upload .msixbundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: spaghettikart-uwp-x64
+          path: vs2022-uwp/uwp/AppPackages/**/*.msixbundle
+          retention-days: 14

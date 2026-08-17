@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{b6f2f6c1-8c2e-4b6a-9b7a-9f2f6c1c7a9e}</ProjectGuid>
+    <Keyword>DirectXApp</Keyword>
+    <RootNamespace>SpaghettiKartUwp</RootNamespace>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
+    <AppContainerApplication>true</AppContainerApplication>
+    <ApplicationType>Windows Store</ApplicationType>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformMinVersion>10.0.17763.0</WindowsTargetPlatformMinVersion>
+    <ApplicationTypeRevision>10.0</ApplicationTypeRevision>
+    <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+    <ProjectName>SpaghettiKart</ProjectName>
+    <!-- Matches the CMake configure/build commands in .github/workflows/uwp-compile.yml:
+         `cmake -S . -B build\x64 ...` then `cmake --build build\x64 --config <Config>`. -->
+    <RecompBase>$(SolutionDir)../build/x64/</RecompBase>
+    <RecompDebugBuild>$(RecompBase)Debug/</RecompDebugBuild>
+    <RecompReleaseBuild>$(RecompBase)Release/</RecompReleaseBuild>
+    <RecompBin>$(RecompBase)_deps/uwplibs-src/x64/bin/</RecompBin>
+    <RecompInc>$(RecompBase)_deps/uwplibs-src/x64/include/</RecompInc>
+    <RecompLib>$(RecompBase)_deps/uwplibs-src/x64/lib/</RecompLib>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
+    <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VSINSTALLDIR)\Common7\IDE\Extensions\Microsoft\VsGraphics\ImageContentTask.props" />
+    <Import Project="$(VSINSTALLDIR)\Common7\IDE\Extensions\Microsoft\VsGraphics\MeshContentTask.props" />
+    <Import Project="$(VSINSTALLDIR)\Common7\IDE\Extensions\Microsoft\VsGraphics\ShaderGraphContentTask.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros">
+    <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
+    <PackageCertificateKeyFile>SpaghettiKart_TemporaryKey.pfx</PackageCertificateKeyFile>
+    <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
+    <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
+    <GenerateTestArtifacts>True</GenerateTestArtifacts>
+    <AppxBundle>Always</AppxBundle>
+    <AppxBundlePlatforms>x64</AppxBundlePlatforms>
+    <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Link>
+      <AdditionalDependencies>
+               $(RecompDebugBuild)Spaghettify.lib;
+                libuwp.lib;
+                SDL2.lib;
+                vccorlibd.lib;
+                msvcrtd.lib;
+                WindowsApp.lib;
+                OneCore.lib;
+                d3d12.lib;
+                dxgi.lib;
+                dxguid.lib;
+                mmdevapi.lib;
+                %(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories); $(RecompLib); $(RecompDebugBuild); $(VCInstallDir)\lib\store\amd64; $(VCInstallDir)\lib\amd64</AdditionalLibraryDirectories>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+      <IgnoreSpecificDefaultLibraries>vccorlib;msvcrt</IgnoreSpecificDefaultLibraries>
+    </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>
+		$(RecompInc);
+		$(RecompInc)SDL2;
+		$(RecompBase)_deps/uwplibs-src/3rdparty/imgui;
+		$(RecompBase)_deps/uwplibs-src/3rdparty/imgui/backends;
+		$(ProjectDir);
+		$(SolutionDir)../src/port;
+		$(SolutionDir)../include;
+		$(SolutionDir)../libultraship/include;
+		$(SolutionDir)../libultraship/src;
+		$(IntermediateOutputPath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>_DEBUG;_UWP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <CompileAsWinRT>true</CompileAsWinRT>
+    </ClCompile>
+    <PreBuildEvent>
+      <Command>if not exist "$(RecompDebugBuild)gamecontrollerdb.txt" (
+  powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/gabomdq/SDL_GameControllerDB/master/gamecontrollerdb.txt' -OutFile '$(RecompDebugBuild)gamecontrollerdb.txt'"
+)</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Link>
+      <AdditionalDependencies>
+                $(RecompReleaseBuild)Spaghettify.lib;
+                libuwp.lib;
+                SDL2.lib;
+                WindowsApp.lib;
+                OneCore.lib;
+                d3d12.lib;
+                dxgi.lib;
+                dxguid.lib;
+                mmdevapi.lib;
+                %(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories); $(RecompLib); $(RecompReleaseBuild); $(VCInstallDir)\lib\store\amd64; $(VCInstallDir)\lib\amd64</AdditionalLibraryDirectories>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+    </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>
+		$(RecompInc);
+		$(RecompInc)SDL2;
+		$(RecompBase)_deps/uwplibs-src/3rdparty/imgui;
+		$(RecompBase)_deps/uwplibs-src/3rdparty/imgui/backends;
+		$(ProjectDir);
+		$(SolutionDir)../src/port;
+		$(SolutionDir)../include;
+		$(SolutionDir)../libultraship/include;
+		$(SolutionDir)../libultraship/src;
+		$(IntermediateOutputPath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NDEBUG;_UWP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <PreBuildEvent>
+      <Command>if not exist "$(RecompReleaseBuild)gamecontrollerdb.txt" (
+  powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/gabomdq/SDL_GameControllerDB/master/gamecontrollerdb.txt' -OutFile '$(RecompReleaseBuild)gamecontrollerdb.txt'"
+)</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <Image Include="UwpAssets\LockScreenLogo.scale-200.png" />
+    <Image Include="UwpAssets\Square150x150Logo.scale-200.png" />
+    <Image Include="UwpAssets\Square44x44Logo.scale-200.png" />
+    <Image Include="UwpAssets\Square44x44Logo.targetsize-24_altform-unplated.png" />
+    <Image Include="UwpAssets\StoreLogo.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <AppxManifest Include="Package.appxmanifest">
+      <SubType>Designer</SubType>
+    </AppxManifest>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\bootmenu.cpp" />
+    <ClCompile Include="src\dx11glue.cpp" />
+    <ClCompile Include="$(RecompBase)_deps/uwplibs-src/3rdparty/imgui/imgui.cpp" />
+    <ClCompile Include="$(RecompBase)_deps/uwplibs-src/3rdparty/imgui/imgui_draw.cpp" />
+    <ClCompile Include="$(RecompBase)_deps/uwplibs-src/3rdparty/imgui/imgui_tables.cpp" />
+    <ClCompile Include="$(RecompBase)_deps/uwplibs-src/3rdparty/imgui/imgui_widgets.cpp" />
+    <ClCompile Include="$(RecompBase)_deps/uwplibs-src/3rdparty/imgui/backends/imgui_impl_sdl2.cpp" />
+    <ClCompile Include="$(RecompBase)_deps/uwplibs-src/3rdparty/imgui/backends/imgui_impl_dx11.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VSINSTALLDIR)\Common7\IDE\Extensions\Microsoft\VsGraphics\ImageContentTask.targets" />
+    <Import Project="$(VSINSTALLDIR)\Common7\IDE\Extensions\Microsoft\VsGraphics\MeshContentTask.targets" />
+    <Import Project="$(VSINSTALLDIR)\Common7\IDE\Extensions\Microsoft\VsGraphics\ShaderGraphContentTask.targets" />
+  </ImportGroup>
+  <!-- Bin deps: DLLs and data files copied into the MSIX package. mk64.o2r is
+       deliberately NOT here -- it's generated on-device from the user's ROM via the
+       boot menu, never bundled. spaghetti.o2r IS bundled: it's built from this repo's
+       own assets/ folder (torch pack, no ROM involved), safe to build in CI. -->
+  <ItemGroup>
+    <Content Include="$(RecompBin)*.dll">
+      <Link>%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(SolutionDir)../config.yml">
+      <Link>%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(SolutionDir)../yamls/**/*">
+      <Link>yamls/%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(SolutionDir)../meta/**/*">
+      <Link>meta/%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(RecompReleaseBuild)gamecontrollerdb.txt">
+      <Link>%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(RecompReleaseBuild)Spaghettify.dll">
+      <Link>%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(SolutionDir)../build/x64/Release/spaghetti.o2r">
+      <Link>%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(RecompBin)dxil.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="SpaghettiKart_TemporaryKey.pfx" />
+  </ItemGroup>
+</Project>

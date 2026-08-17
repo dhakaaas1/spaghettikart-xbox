@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap mp">
+
+  <Identity
+    Name="SpaghettiKart"
+    Publisher="CN=SpaghettiKart-Xbox-Port"
+    Version="0.1.0.0" />
+
+  <mp:PhoneIdentity PhoneProductId="c8e6a2b4-1f0a-4a3e-9c5b-2e7d6f0a8b1c" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+
+  <Properties>
+    <DisplayName>SpaghettiKart</DisplayName>
+    <PublisherDisplayName>SpaghettiKart-Xbox-Port</PublisherDisplayName>
+    <Logo>UwpAssets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.0.0" MaxVersionTested="10.0.0.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="x-generate"/>
+  </Resources>
+
+  <Applications>
+    <Application Id="App"
+      Executable="$targetnametoken$.exe"
+      EntryPoint="SpaghettiKartUwp.App">
+      <uap:VisualElements
+        DisplayName="SpaghettiKart"
+        Square150x150Logo="UwpAssets\Square150x150Logo.png"
+        Square44x44Logo="UwpAssets\Square44x44Logo.png"
+        Description="Unofficial UWP port of SpaghettiKart (Mario Kart 64 decompilation) for Xbox Developer Mode"
+        BackgroundColor="transparent">
+        <uap:DefaultTile/>
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="broadFileSystemAccess" />
+    <Capability Name="internetClient" />
+    <uap:Capability Name="removableStorage"/>
+  </Capabilities>
+</Package>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp</Extensions>
+    </Filter>
+    <Filter Include="UwpAssets">
+      <UniqueIdentifier>{c98ecb45-9a5b-4a6e-9f88-2c1d7e7f2b6c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\bootmenu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\dx11glue.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="UwpAssets\LockScreenLogo.scale-200.png">
+      <Filter>UwpAssets</Filter>
+    </Image>
+    <Image Include="UwpAssets\Square150x150Logo.scale-200.png">
+      <Filter>UwpAssets</Filter>
+    </Image>
+    <Image Include="UwpAssets\Square44x44Logo.scale-200.png">
+      <Filter>UwpAssets</Filter>
+    </Image>
+    <Image Include="UwpAssets\Square44x44Logo.targetsize-24_altform-unplated.png">
+      <Filter>UwpAssets</Filter>
+    </Image>
+    <Image Include="UwpAssets\StoreLogo.png">
+      <Filter>UwpAssets</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <AppxManifest Include="Package.appxmanifest" />
+  </ItemGroup>
+</Project>

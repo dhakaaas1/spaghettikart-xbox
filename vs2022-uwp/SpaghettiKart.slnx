@@ -1,0 +1,8 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="uwp/uwp.vcxproj" Id="b6f2f6c1-8c2e-4b6a-9b7a-9f2f6c1c7a9e">
+    <Deploy />
+  </Project>
+</Solution>
