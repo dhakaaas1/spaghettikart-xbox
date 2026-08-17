@@ -8,6 +8,7 @@
 #endif
 #include "GameExtractor.h"
 #include <cstdio>
+#include <cstring>
 #include <unordered_map>
 
 #include <fstream>
@@ -213,6 +214,10 @@ bool GameExtractor::LoadRomFromPath(const std::string& path) {
 }
 
 bool GameExtractor::GenerateOTR() const {
+    return GenerateOTR(nullptr);
+}
+
+bool GameExtractor::GenerateOTR(std::string* errorOut) const {
     const std::string assets_path = Ship::Context::GetAppBundlePath();
 #ifndef _UWP
     const std::string game_path = Ship::Context::GetAppDirectoryPath();
@@ -222,12 +227,23 @@ bool GameExtractor::GenerateOTR() const {
     const std::string game_path = Ship::Context::GetPathRelativeToAuxiliary("");
 #endif
 
-    Companion::Instance = new Companion(this->mGameData, ArchiveType::O2R, false, assets_path, game_path);
-    Companion::Instance->SetAdditionalFiles({ "meta/mods.toml" });
-
     try {
+        Companion::Instance = new Companion(this->mGameData, ArchiveType::O2R, false, assets_path, game_path);
+        Companion::Instance->SetAdditionalFiles({ "meta/mods.toml" });
         Companion::Instance->Init(ExportType::Binary);
     } catch (const std::exception& e) {
+        SPDLOG_ERROR("GenerateOTR failed (assets_path=\"{}\", game_path=\"{}\"): {}", assets_path, game_path,
+                     e.what());
+        if (errorOut != nullptr) {
+            *errorOut = "assets_path=\"" + assets_path + "\" game_path=\"" + game_path + "\": " + e.what();
+        }
+        return false;
+    } catch (...) {
+        SPDLOG_ERROR("GenerateOTR failed (assets_path=\"{}\", game_path=\"{}\"): unknown exception", assets_path,
+                     game_path);
+        if (errorOut != nullptr) {
+            *errorOut = "assets_path=\"" + assets_path + "\" game_path=\"" + game_path + "\": unknown exception";
+        }
         return false;
     }
 
@@ -240,20 +256,40 @@ bool GameExtractor::GenerateOTR() const {
 // inside the AppContainer sandbox, so ROM selection can't happen in this DLL itself).
 // Mirrors the desktop SelectGameFromUI() -> ValidateChecksum() -> GenerateOTR() flow,
 // just fed a path directly instead of discovering/prompting for one.
-extern "C" __declspec(dllexport) bool SpaghettiKart_ExtractRom(const char* romPath) {
+// errorOut/errorOutLen let the caller display the real failure reason on-screen --
+// SPDLOG_ERROR alone isn't enough to diagnose from, since the log file's own path
+// resolution has the same read-only-install-directory problem this function works
+// around (GetAppDirectoryPath() isn't UWP-aware), so log files may not get written.
+extern "C" __declspec(dllexport) bool SpaghettiKart_ExtractRom(const char* romPath, char* errorOut,
+                                                                 size_t errorOutLen) {
+    auto setError = [&](const std::string& msg) {
+        if (errorOut != nullptr && errorOutLen > 0) {
+            strncpy_s(errorOut, errorOutLen, msg.c_str(), _TRUNCATE);
+        }
+    };
+
     if (romPath == nullptr || romPath[0] == '\0') {
         SPDLOG_ERROR("SpaghettiKart_ExtractRom called with no ROM path");
+        setError("No ROM path given");
         return false;
     }
 
     GameExtractor extractor;
     if (!extractor.LoadRomFromPath(romPath)) {
+        setError("Failed to open/read the ROM file at " + std::string(romPath));
         return false;
     }
     if (!extractor.ValidateChecksum().has_value()) {
         SPDLOG_ERROR("ROM at {} did not match a known SpaghettiKart-supported game", romPath);
+        setError("ROM did not match a known SpaghettiKart-supported game (checksum mismatch)");
         return false;
     }
-    return extractor.GenerateOTR();
+
+    std::string error;
+    bool ok = extractor.GenerateOTR(&error);
+    if (!ok) {
+        setError(error);
+    }
+    return ok;
 }
 #endif

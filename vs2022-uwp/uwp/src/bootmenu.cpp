@@ -41,7 +41,8 @@
 
 extern "C" __declspec(dllimport) void uwp_GetBundlePath(char* buffer);
 extern "C" __declspec(dllimport) void uwp_ProcessEvents();
-extern "C" __declspec(dllimport) bool SpaghettiKart_ExtractRom(const char* romPath);
+extern "C" __declspec(dllimport) bool SpaghettiKart_ExtractRom(const char* romPath, char* errorOut,
+                                                                 size_t errorOutLen);
 
 namespace bootmenu {
 enum class BootState { Setup, CheckingO2R, SelectingROM, Extracting, ExtractionComplete, ExtractionFailed, Ready };
@@ -302,9 +303,11 @@ void ExtractionThreadWorker(const std::string& romPath) {
     bool success = false;
     std::string errorDetails;
     try {
-        success = SpaghettiKart_ExtractRom(romPath.c_str());
+        char errorBuf[512] = { 0 };
+        success = SpaghettiKart_ExtractRom(romPath.c_str(), errorBuf, sizeof(errorBuf));
         if (!success) {
-            errorDetails = "The ROM did not match a known SpaghettiKart-supported game, or extraction failed.";
+            errorDetails = errorBuf[0] != '\0' ? std::string(errorBuf)
+                                                : "Extraction failed (no further detail was reported).";
         }
     } catch (const std::exception& e) {
         errorDetails = std::string("Exception: ") + e.what();
