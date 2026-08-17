@@ -208,7 +208,10 @@
       <Link>%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(SolutionDir)../build/x64/Release/spaghetti.o2r">
+    <!-- GenerateO2R.cmake writes to the top-level CMake binary dir, not a
+         per-config subfolder (multi-config generators don't split custom
+         command output by config unless told to with a generator expression). -->
+    <Content Include="$(RecompBase)spaghetti.o2r">
       <Link>%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
