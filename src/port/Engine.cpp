@@ -183,6 +183,16 @@ GameEngine::GameEngine() {
 
     this->context->Init({assets_path}, {}, 3, { 26800, 512, 1100 }, wnd, controlDeck);
 
+#ifdef _UWP
+    // Opening the settings menu with a controller (View/Back button, SpaghettiGui.cpp's
+    // TOGGLE_PAD_BTN) is itself gated behind this same CVar, and it's normally off by
+    // default -- fine on desktop, where F1 always works regardless, but Xbox has no
+    // keyboard fallback, so leaving it off would make the menu unreachable by any means.
+    // Only seeds the default; a user who explicitly turns it off keeps that choice.
+    CVarRegisterInteger(CVAR_IMGUI_CONTROLLER_NAV, 1);
+    CVarSave();
+#endif
+
 #ifndef __SWITCH__
     Ship::Context::GetRawInstance()->GetLogger()->set_level(
         (spdlog::level::level_enum) CVarGetInteger("gDeveloperTools.LogLevel", 1));
