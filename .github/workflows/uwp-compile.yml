@@ -25,7 +25,9 @@ on:
 
 jobs:
   build-uwp:
-    runs-on: windows-latest
+    # windows-latest has drifted off VS2022 on newer runner images; pin windows-2022
+    # explicitly, matching this repo's own working windows-compile.yml.
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
         with:
