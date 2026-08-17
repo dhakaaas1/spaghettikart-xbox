@@ -12,6 +12,7 @@ public:
     bool SelectGameFromUI();
     void GetRoms(std::vector<std::string>& roms);
     bool GenerateOTR() const;
+    bool LoadRomFromPath(const std::string& path);
 private:
     fs::path mGamePath;
     std::vector<uint8_t> mGameData;

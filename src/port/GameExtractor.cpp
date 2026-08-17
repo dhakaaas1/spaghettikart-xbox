@@ -1,8 +1,10 @@
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_UWP)
 #include <Windows.h>
 #include <winuser.h>
 #include <shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
+#elif defined(_UWP)
+#include <Windows.h>
 #endif
 #include "GameExtractor.h"
 #include <cstdio>
@@ -22,7 +24,7 @@
 #include <unistd.h>
 #endif
 
-#if !defined(__IOS__) && !defined(__ANDROID__) && !defined(__SWITCH__)
+#if !defined(__IOS__) && !defined(__ANDROID__) && !defined(__SWITCH__) && !defined(_UWP)
 #include "portable-file-dialogs.h"
 #endif
 
@@ -71,7 +73,7 @@ bool GameExtractor::SelectGameFromUI() {
         }
     }
 
-#if !defined(__IOS__) && !defined(__ANDROID__) && !defined(__SWITCH__)
+#if !defined(__IOS__) && !defined(__ANDROID__) && !defined(__SWITCH__) && !defined(_UWP)
     // Desktop: fallback to file dialogue if no baserom found
     if (!foundGame) {
         if (!pfd::settings::available()) {
@@ -85,6 +87,15 @@ bool GameExtractor::SelectGameFromUI() {
         if (selection.empty()) return false;
 
         romPath = selection[0];
+    }
+#elif defined(_UWP)
+    // UWP: there's no native file dialog available in the AppContainer sandbox. ROM
+    // selection happens entirely in the separate boot-menu host app (vs2022-uwp) before
+    // this DLL is ever loaded; it calls SpaghettiKart_ExtractRom() (below) directly with
+    // an already-chosen path instead of going through SelectGameFromUI at all.
+    if (!foundGame) {
+        SPDLOG_ERROR("No baserom found and no UI available on UWP; use the boot menu to select a ROM.");
+        return false;
     }
 #else
     // Mobile: fallback to baserom.us.z64
@@ -119,7 +130,7 @@ bool GameExtractor::SelectGameFromUI() {
 }
 
 void GameExtractor::GetRoms(std::vector<std::string>& roms) {
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_UWP)
     WIN32_FIND_DATAA ffd;
     HANDLE h = FindFirstFileA(".\\*", &ffd);
 
@@ -185,6 +196,22 @@ std::optional<std::string> GameExtractor::ValidateChecksum() const {
     return mGameList[hash];
 }
 
+bool GameExtractor::LoadRomFromPath(const std::string& path) {
+    if (!std::filesystem::exists(path)) {
+        SPDLOG_ERROR("Failed to find ROM at path: {}", path);
+        return false;
+    }
+
+    std::ifstream inFile(path, std::ios::binary);
+    if (!inFile.is_open()) return false;
+
+    mGameData = std::vector<uint8_t>(std::istreambuf_iterator<char>(inFile), {});
+    inFile.close();
+    mGamePath = path;
+
+    return true;
+}
+
 bool GameExtractor::GenerateOTR() const {
     const std::string assets_path = Ship::Context::GetAppBundlePath();
     const std::string game_path = Ship::Context::GetAppDirectoryPath();
@@ -200,3 +227,27 @@ bool GameExtractor::GenerateOTR() const {
 
     return true;
 }
+
+#ifdef _UWP
+// Called by the separate boot-menu host app (vs2022-uwp/uwp) once the user has picked
+// a ROM file through its own file browser (there's no native file dialog available
+// inside the AppContainer sandbox, so ROM selection can't happen in this DLL itself).
+// Mirrors the desktop SelectGameFromUI() -> ValidateChecksum() -> GenerateOTR() flow,
+// just fed a path directly instead of discovering/prompting for one.
+extern "C" __declspec(dllexport) bool SpaghettiKart_ExtractRom(const char* romPath) {
+    if (romPath == nullptr || romPath[0] == '\0') {
+        SPDLOG_ERROR("SpaghettiKart_ExtractRom called with no ROM path");
+        return false;
+    }
+
+    GameExtractor extractor;
+    if (!extractor.LoadRomFromPath(romPath)) {
+        return false;
+    }
+    if (!extractor.ValidateChecksum().has_value()) {
+        SPDLOG_ERROR("ROM at {} did not match a known SpaghettiKart-supported game", romPath);
+        return false;
+    }
+    return extractor.GenerateOTR();
+}
+#endif

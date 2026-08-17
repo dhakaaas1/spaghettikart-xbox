@@ -1021,6 +1021,12 @@ void CM_ThrowRuntimeError(const char* fmt, ...) {
 #endif
 
 #ifdef _WIN32
+#ifdef _UWP
+// The UWP host app (vs2022-uwp/uwp) is a separate executable that links this game
+// as a DLL and calls SDL_WinRTRunApp(SDL_main, nullptr) from its own WinRT entry
+// point, so SDL_main needs to be visible across the DLL boundary.
+extern "C" __declspec(dllexport)
+#endif
 int SDL_main(int argc, char** argv) {
 #else
 #if defined(__cplusplus) && defined(PLATFORM_IOS)
