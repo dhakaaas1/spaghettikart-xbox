@@ -18,7 +18,9 @@ Unlike a normal UWP app, this is a **two-stage build**, not a single MSBuild pro
    no ROM involved, safe to build in CI) into an MSIX.
 
 See `.github/workflows/uwp-compile.yml` for the exact commands (CMake configure/build,
-then `msbuild uwp.vcxproj`) run on a `windows-latest` GitHub Actions runner.
+then `msbuild vs2022-uwp/SpaghettiKart.slnx`) run on a `windows-2022` GitHub Actions
+runner. Must build the `.slnx`, not `uwp.vcxproj` directly: `$(SolutionDir)` (used
+throughout the vcxproj) only gets set by MSBuild when building through a solution file.
 
 ## What's NOT built here
 
@@ -46,3 +48,35 @@ cmake --build build\x64 --config Release --target GenerateO2R
 Then open `vs2022-uwp\SpaghettiKart.slnx` in Visual Studio 2022 and build/deploy
 `uwp.vcxproj` (x64, Release). It expects the CMake output above to already exist at
 `build\x64\Release\`.
+
+## Sideloading onto Xbox (Developer Mode)
+
+Grab the `.msixbundle` from the workflow run's `spaghettikart-uwp-x64` artifact
+(`gh run download <run-id> -n spaghettikart-uwp-x64`, or from the Actions tab in the
+GitHub UI), then, from a browser on any machine on the same network as the Xbox:
+
+1. On the Xbox, in Dev Home, note the Device Portal URL it shows (something like
+   `https://<console-ip>:11443`). If this is the first time connecting, Dev Home walks
+   you through setting a Device Portal username/password.
+2. Open that URL in a browser. Accept the self-signed certificate warning and sign in.
+3. Get your ROM onto the console before or during first launch, at the drive the app
+   will end up using (see below): easiest is a USB drive plugged into the Xbox (shows
+   up as `E:\`), or use Device Portal's **System > File explorer** page if it exposes
+   `D:\` for upload.
+4. In Device Portal, go to **Apps**, then **Add** (under "Install app"). Browse to the
+   downloaded `.msixbundle` and submit. No separate certificate install should be
+   needed -- Developer Mode accepts self-signed test packages directly. If you do hit
+   an untrusted-certificate error, re-run the workflow with the `.cer` upload added (it
+   sits next to the `.msixbundle` in the build output, `uwp-compile.yml` just doesn't
+   upload it currently) and install that first via Device Portal's certificate page.
+5. Once installed, launch it from **My games & apps** on the console (or from Device
+   Portal's Apps list).
+6. First launch shows the boot menu: pick `D:\` (internal) or `E:\` (USB/external) for
+   storage, then **Select ROM File** to browse to your ROM and extract `mk64.o2r`. This
+   only happens once -- subsequent launches go straight to the game once `mk64.o2r` is
+   found.
+7. Optional: to enable the MK64 Reloaded 4K texture pack, copy its `.o2r` file into
+   `<the drive you picked>:\SpaghettiKart\mods\` (create the folder if it doesn't exist
+   yet -- the boot menu creates it on first run, so do this after the first launch/ROM
+   extraction, or manually beforehand). It's picked up automatically on the next launch,
+   no manifest or reinstall needed.
