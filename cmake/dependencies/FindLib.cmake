@@ -3,10 +3,12 @@ if(WIN32)
   find_package(Vorbis CONFIG REQUIRED)
   if(SPAGHETTIKART_UWP)
     # LIBUWP: the CoreWindow/refresh-rate/screen-size glue DLL (see the UwpLibs
-    # FetchContent block in the root CMakeLists.txt). WindowsApp: the umbrella
-    # WinRT/UWP import lib needed for any Windows.* API surface calls; required
-    # for an AppContainer-targeted binary to link at all.
-    list(APPEND ADDITIONAL_LIBRARY_DEPENDENCIES LIBUWP WindowsApp)
+    # FetchContent block in the root CMakeLists.txt). runtimeobject: WinRT/C++-WinRT
+    # activation (RoGetActivationFactory etc. -- WindowsApp.lib is Store-app-only
+    # and this DLL isn't itself linked as an AppContainer binary, only loaded into
+    # one at runtime by vs2022-uwp/uwp). OneCore: the AppContainer-safe "FromApp"
+    # file APIs (FindFirstFileExFromAppW) used by Context::GetPathRelativeToAuxiliary.
+    list(APPEND SPAGHETTIKART_UWP_LIBS LIBUWP runtimeobject OneCore)
   endif()
 elseif(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
   set(ADDITIONAL_LIBRARY_DEPENDENCIES -lglad SDL2::SDL2)
@@ -45,4 +47,4 @@ if(NOT USE_OPENGLES)
 endif()
 
 target_link_libraries(${PROJECT_NAME}
-                      PRIVATE torch ${ADDITIONAL_LIBRARY_DEPENDENCIES})
+                      PRIVATE torch ${ADDITIONAL_LIBRARY_DEPENDENCIES} ${SPAGHETTIKART_UWP_LIBS})
