@@ -62,9 +62,13 @@ jobs:
         # committed. Sideloading via Xbox Dev Mode's Device Portal doesn't require a
         # trusted CA, just a package whose signature is internally valid.
 
-      - name: Build UWP package (uwp.vcxproj)
+      - name: Build UWP package (SpaghettiKart.slnx)
+        # Must build the .slnx, not uwp.vcxproj directly: $(SolutionDir) (used
+        # throughout the vcxproj for RecompBase etc.) only gets set by MSBuild when
+        # building through a solution file -- building the vcxproj directly leaves
+        # it empty, turning every RecompBase-derived path into a bogus relative one.
         run: >
-          msbuild vs2022-uwp/uwp/uwp.vcxproj
+          msbuild vs2022-uwp/SpaghettiKart.slnx
           /p:Configuration=Release /p:Platform=x64
           /p:UapAppxPackageBuildMode=SideloadOnly
           /p:AppxBundle=Always /p:AppxBundlePlatforms=x64
