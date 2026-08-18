@@ -436,6 +436,10 @@ bool BootSelect(void* wnd, int w, int h) {
                 progressPercent = g_extractionState.progressPercent;
             }
             bool enteringSelecting = (currentState == BootState::SelectingROM && previousState != BootState::SelectingROM);
+            bool enteringResultState = (currentState != previousState) &&
+                                       (currentState == BootState::ExtractionComplete ||
+                                        currentState == BootState::ExtractionFailed ||
+                                        currentState == BootState::Ready);
 
             ImGui::SetCursorPosX((contentWidth - ImGui::CalcTextSize("SpaghettiKart").x) * 0.5f);
             ImGui::Text("SpaghettiKart");
@@ -607,14 +611,20 @@ bool BootSelect(void* wnd, int w, int h) {
                     ImGui::PopStyleColor();
                     ImGui::Spacing();
                     ImGui::Spacing();
-                    bool pressed = ImGui::Button("Continue to Game", ImVec2(220.0f, 45.0f));
                     // The Extracting screen's scrollable log child leaves gamepad nav
                     // focus pointing at a window that no longer exists once this state
                     // takes over, so without this the button renders but nothing is
                     // nav-focused to activate -- A/click do nothing until the user
-                    // happens to nudge a direction first. Force focus onto it instead.
-                    ImGui::SetItemDefaultFocus();
-                    if (pressed) {
+                    // happens to nudge a direction first. SetItemDefaultFocus() doesn't
+                    // help here: it only takes effect when the *enclosing window* is
+                    // newly appearing, and this is one persistently-open window across
+                    // every boot state, never re-appearing. SetKeyboardFocusHere(),
+                    // called before the widget on the exact frame this state is entered,
+                    // forces both keyboard and gamepad nav focus onto it directly.
+                    if (enteringResultState) {
+                        ImGui::SetKeyboardFocusHere();
+                    }
+                    if (ImGui::Button("Continue to Game", ImVec2(220.0f, 45.0f))) {
                         shouldContinue = true;
                         running = false;
                     }
@@ -629,9 +639,10 @@ bool BootSelect(void* wnd, int w, int h) {
                     if (!errorMsg.empty()) ImGui::TextWrapped("%s", errorMsg.c_str());
                     ImGui::Spacing();
                     ImGui::Spacing();
-                    bool tryAgainPressed = ImGui::Button("Try Again", ImVec2(160.0f, 40.0f));
-                    ImGui::SetItemDefaultFocus();
-                    if (tryAgainPressed) {
+                    if (enteringResultState) {
+                        ImGui::SetKeyboardFocusHere();
+                    }
+                    if (ImGui::Button("Try Again", ImVec2(160.0f, 40.0f))) {
                         std::lock_guard<std::mutex> lock(g_extractionState.mutex);
                         g_extractionState.state = BootState::SelectingROM;
                         g_extractionState.errorMessage.clear();
@@ -650,9 +661,10 @@ bool BootSelect(void* wnd, int w, int h) {
                     ImGui::PopStyleColor();
                     ImGui::Spacing();
                     ImGui::Spacing();
-                    bool launchPressed = ImGui::Button("Launch Game", ImVec2(220.0f, 45.0f));
-                    ImGui::SetItemDefaultFocus();
-                    if (launchPressed) {
+                    if (enteringResultState) {
+                        ImGui::SetKeyboardFocusHere();
+                    }
+                    if (ImGui::Button("Launch Game", ImVec2(220.0f, 45.0f))) {
                         shouldContinue = true;
                         running = false;
                     }
