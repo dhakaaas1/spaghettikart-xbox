@@ -198,6 +198,13 @@ GameEngine::GameEngine() {
     // keyboard fallback, so leaving it off would make the menu unreachable by any means.
     // Only seeds the default; a user who explicitly turns it off keeps that choice.
     CVarRegisterInteger(CVAR_IMGUI_CONTROLLER_NAV, 1);
+
+    // Confirmed on real Xbox Series X hardware: vsync-on caused stutter/crashes above
+    // 30fps even after switching the default backend to DX11 above (see
+    // Fast3dWindow.cpp) -- turning it off resolved it completely. Same
+    // seed-the-default-once pattern as CVAR_IMGUI_CONTROLLER_NAV above.
+    CVarRegisterInteger(CVAR_VSYNC_ENABLED, 0);
+
     CVarSave();
 #endif
 

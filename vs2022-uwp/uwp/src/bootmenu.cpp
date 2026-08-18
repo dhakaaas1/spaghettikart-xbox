@@ -607,7 +607,14 @@ bool BootSelect(void* wnd, int w, int h) {
                     ImGui::PopStyleColor();
                     ImGui::Spacing();
                     ImGui::Spacing();
-                    if (ImGui::Button("Continue to Game", ImVec2(220.0f, 45.0f))) {
+                    bool pressed = ImGui::Button("Continue to Game", ImVec2(220.0f, 45.0f));
+                    // The Extracting screen's scrollable log child leaves gamepad nav
+                    // focus pointing at a window that no longer exists once this state
+                    // takes over, so without this the button renders but nothing is
+                    // nav-focused to activate -- A/click do nothing until the user
+                    // happens to nudge a direction first. Force focus onto it instead.
+                    ImGui::SetItemDefaultFocus();
+                    if (pressed) {
                         shouldContinue = true;
                         running = false;
                     }
@@ -622,7 +629,9 @@ bool BootSelect(void* wnd, int w, int h) {
                     if (!errorMsg.empty()) ImGui::TextWrapped("%s", errorMsg.c_str());
                     ImGui::Spacing();
                     ImGui::Spacing();
-                    if (ImGui::Button("Try Again", ImVec2(160.0f, 40.0f))) {
+                    bool tryAgainPressed = ImGui::Button("Try Again", ImVec2(160.0f, 40.0f));
+                    ImGui::SetItemDefaultFocus();
+                    if (tryAgainPressed) {
                         std::lock_guard<std::mutex> lock(g_extractionState.mutex);
                         g_extractionState.state = BootState::SelectingROM;
                         g_extractionState.errorMessage.clear();
@@ -641,7 +650,9 @@ bool BootSelect(void* wnd, int w, int h) {
                     ImGui::PopStyleColor();
                     ImGui::Spacing();
                     ImGui::Spacing();
-                    if (ImGui::Button("Launch Game", ImVec2(220.0f, 45.0f))) {
+                    bool launchPressed = ImGui::Button("Launch Game", ImVec2(220.0f, 45.0f));
+                    ImGui::SetItemDefaultFocus();
+                    if (launchPressed) {
                         shouldContinue = true;
                         running = false;
                     }
