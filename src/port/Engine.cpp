@@ -499,34 +499,6 @@ void GameEngine::StartFrame() {
             break;
     }
 
-    // Controller equivalent of the TAB hotkey above, for platforms with no keyboard
-    // (Xbox). Polled directly via SDL rather than through ImGui's gamepad key state --
-    // unlike the View/Start check below, which is confirmed working, ImGuiKey_GamepadL3
-    // didn't register a press in testing, and this repo has no vendored copy of ImGui's
-    // SDL2 backend to confirm whether its button table even maps
-    // SDL_CONTROLLER_BUTTON_LEFTSTICK to it in the pinned version. Checks every
-    // connected controller regardless of assigned port, since this is a global meta
-    // action, not per-player gameplay input -- and unlike ImGui::IsKeyPressed, a raw SDL
-    // button query is "is held", not "was just pressed", so edge detection is manual.
-    {
-        static bool wasL3Down = false;
-        bool isL3Down = false;
-        auto connectedDeviceManager = Ship::Context::GetRawInstance()->GetControlDeck()->GetConnectedPhysicalDeviceManager();
-        for (uint8_t port = 0; port < 4 && !isL3Down; port++) {
-            for (const auto& [instanceId, gamepad] : connectedDeviceManager->GetConnectedSDLGamepadsForPort(port)) {
-                if (SDL_GameControllerGetButton(gamepad, SDL_CONTROLLER_BUTTON_LEFTSTICK)) {
-                    isL3Down = true;
-                    break;
-                }
-            }
-        }
-        if (isL3Down && !wasL3Down) {
-            // Toggle HD Assets (same action/CVar as the TAB key above)
-            CVarSetInteger("gEnhancements.Mods.AlternateAssets", !CVarGetInteger("gEnhancements.Mods.AlternateAssets", 0));
-        }
-        wasL3Down = isL3Down;
-    }
-
     // Reset requires holding View+Start together for ~1s rather than a single button,
     // so it can't be triggered by an accidental stick click or button mash mid-race.
     static float resetHoldSeconds = 0.0f;
