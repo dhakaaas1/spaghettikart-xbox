@@ -1,6 +1,8 @@
 #include "Engine.h"
 
 #include <cstdlib>
+#include <imgui.h>
+#include "Game.h"
 #include "ship/utils/StringHelper.h"
 #include "GameExtractor.h"
 #include "engine/mods/ModManager.h"
@@ -401,6 +403,30 @@ void GameEngine::StartFrame() const {
         }
         default:
             break;
+    }
+
+    // Controller equivalents of the above meta-hotkeys, for platforms with no keyboard
+    // (Xbox). Routed through ImGui's gamepad key state -- same mechanism the existing
+    // View-button menu toggle uses -- rather than the N64 controller button system,
+    // since neither of these has a real N64 button (the N64 pad has no clickable
+    // sticks): they're meta actions, not gameplay input.
+    if (ImGui::IsKeyPressed(ImGuiKey_GamepadL3, false)) {
+        // Toggle HD Assets (same action/CVar as the TAB key above)
+        CVarSetInteger("gEnhancements.Mods.AlternateAssets", !CVarGetInteger("gEnhancements.Mods.AlternateAssets", 0));
+    }
+
+    // Reset requires holding View+Start together for ~1s rather than a single button,
+    // so it can't be triggered by an accidental stick click or button mash mid-race.
+    static float resetHoldSeconds = 0.0f;
+    constexpr float RESET_HOLD_THRESHOLD_SECONDS = 1.0f;
+    if (ImGui::IsKeyDown(ImGuiKey_GamepadBack) && ImGui::IsKeyDown(ImGuiKey_GamepadStart)) {
+        resetHoldSeconds += ImGui::GetIO().DeltaTime;
+        if (resetHoldSeconds >= RESET_HOLD_THRESHOLD_SECONDS) {
+            CM_RequestReset();
+            resetHoldSeconds = 0.0f;
+        }
+    } else {
+        resetHoldSeconds = 0.0f;
     }
 }
 

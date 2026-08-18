@@ -54,6 +54,11 @@ if(SPAGHETTIKART_UWP)
     GIT_TAG d6a6acc403a21a8a60bfbe6cd3a7cbafdf91df15
   )
   FetchContent_MakeAvailable(UwpLibs)
+
+  # Must run before add_subdirectory(torch) below (via cmake/dependencies/common.cmake)
+  # patches Companion.cpp's asset scan to avoid a UWP AppContainer sandbox crash --
+  # see cmake/PatchTorchUwp.cmake for the full explanation.
+  include(cmake/PatchTorchUwp.cmake)
 endif()
 
 set(SPAGHETTIKART_IOS OFF)
