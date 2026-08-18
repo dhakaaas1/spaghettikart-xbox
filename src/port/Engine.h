@@ -71,7 +71,7 @@ class GameEngine {
 
     static uint32_t GetInterpolationFPS();
     static uint32_t GetInterpolationFrameCount();
-    void StartFrame() const;
+    void StartFrame();
     static void RunCommands(Gfx* pool, const std::vector<std::unordered_map<Mtx*, MtxF>>& mtx_replacements);
     void ProcessFrame(void (*run_one_game_iter)()) const;
     static void Destroy();
@@ -90,8 +90,28 @@ class GameEngine {
     uint32_t OTRGetGameViewportHeight();
     uint32_t OTRCalculateCenterOfAreaFromRightEdge(int32_t center);
     uint32_t OTRCalculateCenterOfAreaFromLeftEdge(int32_t center);
+
+    // UI auto-scale: recomputes and re-applies scale (font atlas rebuild + style
+    // ScaleAllSizes) if the detected output resolution has changed since the last check.
+    // Cheap when nothing has changed (an int comparison) -- safe to call once per frame.
+    void UpdateUiScaleIfResolutionChanged();
+    // Recomputes final scale (auto * manual CVar) and applies it unconditionally (still
+    // cheap/no-op if the recomputed value matches what's already applied). Call this
+    // directly from the manual UI Scale slider's callback, since a CVar change doesn't
+    // move the detected resolution UpdateUiScaleIfResolutionChanged() checks.
+    void RecomputeAndApplyUiScale();
+
   private:
     ImFont* CreateFontWithSize(float size, std::string fontPath = "");
+    void LoadFonts(float scale);
+    void ApplyUiScale(float scale);
+    float ComputeAutoUiScale();
+
+    int mLastDetectedUiWidth = -1;
+    int mLastDetectedUiHeight = -1;
+    float mLastAppliedUiScale = -1.0f;
+    bool mHasCapturedBaseUiStyle = false;
+    ImGuiStyle mBaseUiStyle;
 };
 
 #endif

@@ -1,8 +1,14 @@
 #include "Engine.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <imgui.h>
 #include "Game.h"
+
+#ifdef _UWP
+extern "C" __declspec(dllimport) void uwp_GetScreenSize(int* x, int* y);
+#endif
 #include "ship/utils/StringHelper.h"
 #include "GameExtractor.h"
 #include "engine/mods/ModManager.h"
@@ -273,13 +279,99 @@ GameEngine::GameEngine() {
     loader->RegisterResourceFactory(std::make_shared<MK64::ResourceFactoryBinaryMinimapV0>(), RESOURCE_FORMAT_BINARY,
                                     "Minimap", static_cast<uint32_t>(MK64::ResourceType::Minimap), 0);
 
-    fontMono = CreateFontWithSize(16.0f, "fonts/Inconsolata-Regular.ttf");
-    fontMonoLarger = CreateFontWithSize(20.0f, "fonts/Inconsolata-Regular.ttf");
-    fontMonoLargest = CreateFontWithSize(24.0f, "fonts/Inconsolata-Regular.ttf");
-    fontStandard = CreateFontWithSize(16.0f, "fonts/Montserrat-Regular.ttf");
-    fontStandardLarger = CreateFontWithSize(20.0f, "fonts/Montserrat-Regular.ttf");
-    fontStandardLargest = CreateFontWithSize(24.0f, "fonts/Montserrat-Regular.ttf");
+    LoadFonts(1.0f);
+
+    // Captured before any UI-scale rebuild ever runs, so later rescales always derive
+    // from the original 100%-baseline style rather than compounding on an
+    // already-scaled one.
+    mBaseUiStyle = ImGui::GetStyle();
+    mHasCapturedBaseUiStyle = true;
+}
+
+void GameEngine::LoadFonts(float scale) {
+    fontMono = CreateFontWithSize(16.0f * scale, "fonts/Inconsolata-Regular.ttf");
+    fontMonoLarger = CreateFontWithSize(20.0f * scale, "fonts/Inconsolata-Regular.ttf");
+    fontMonoLargest = CreateFontWithSize(24.0f * scale, "fonts/Inconsolata-Regular.ttf");
+    fontStandard = CreateFontWithSize(16.0f * scale, "fonts/Montserrat-Regular.ttf");
+    fontStandardLarger = CreateFontWithSize(20.0f * scale, "fonts/Montserrat-Regular.ttf");
+    fontStandardLargest = CreateFontWithSize(24.0f * scale, "fonts/Montserrat-Regular.ttf");
     ImGui::GetIO().FontDefault = fontMono;
+}
+
+float GameEngine::ComputeAutoUiScale() {
+    int width = 0, height = 0;
+#ifdef _UWP
+    uwp_GetScreenSize(&width, &height);
+#else
+    auto wnd = Ship::Context::GetRawInstance()->GetWindow();
+    if (wnd == nullptr) {
+        return 1.0f;
+    }
+    width = static_cast<int>(wnd->GetWidth());
+    height = static_cast<int>(wnd->GetHeight());
+#endif
+    if (height <= 0) {
+        return 1.0f;
+    }
+    // 1080p baseline; never scale below the original design size, and clamp the top end
+    // so an unexpected resolution report can't blow the UI up to something absurd.
+    float scale = static_cast<float>(height) / 1080.0f;
+    return std::clamp(scale, 1.0f, 3.0f);
+}
+
+void GameEngine::ApplyUiScale(float scale) {
+    if (!mHasCapturedBaseUiStyle) {
+        mBaseUiStyle = ImGui::GetStyle();
+        mHasCapturedBaseUiStyle = true;
+    }
+    // Font atlas rebuilds are relatively expensive (re-rasterizes every glyph and
+    // recreates a GPU texture) -- skip if this is the same scale already applied, so a
+    // per-frame resolution check or a slider drag that lands back on the same value
+    // doesn't redo the work.
+    if (mLastAppliedUiScale >= 0.0f && fabsf(scale - mLastAppliedUiScale) < 0.001f) {
+        return;
+    }
+    mLastAppliedUiScale = scale;
+
+    ImGui::GetIO().Fonts->Clear();
+    LoadFonts(scale);
+
+    // Fresh copy of the saved base style every time, not the current (possibly already
+    // scaled) live style, so repeated calls don't compound.
+    ImGuiStyle newStyle = mBaseUiStyle;
+    newStyle.ScaleAllSizes(scale);
+    ImGui::GetStyle() = newStyle;
+
+    auto gui = Ship::Context::GetRawInstance()->GetWindow()->GetGui();
+    if (gui != nullptr) {
+        gui->ImGuiBackendRebuildFontsTexture();
+    }
+}
+
+void GameEngine::RecomputeAndApplyUiScale() {
+    float autoScale = ComputeAutoUiScale();
+    float manualMultiplier = CVarGetFloat("gSettings.Menu.UIScaleMultiplier", 1.0f);
+    ApplyUiScale(autoScale * manualMultiplier);
+}
+
+void GameEngine::UpdateUiScaleIfResolutionChanged() {
+    int width = 0, height = 0;
+#ifdef _UWP
+    uwp_GetScreenSize(&width, &height);
+#else
+    auto wnd = Ship::Context::GetRawInstance()->GetWindow();
+    if (wnd == nullptr) {
+        return;
+    }
+    width = static_cast<int>(wnd->GetWidth());
+    height = static_cast<int>(wnd->GetHeight());
+#endif
+    if (width == mLastDetectedUiWidth && height == mLastDetectedUiHeight) {
+        return;
+    }
+    mLastDetectedUiWidth = width;
+    mLastDetectedUiHeight = height;
+    RecomputeAndApplyUiScale();
 }
 
 bool GameEngine::GenAssetFile() {
@@ -386,7 +478,9 @@ void GameEngine::Destroy() {
 
 bool ShouldClearTextureCacheAtEndOfFrame = false;
 
-void GameEngine::StartFrame() const {
+void GameEngine::StartFrame() {
+    UpdateUiScaleIfResolutionChanged();
+
     using Ship::KbScancode;
     const int32_t dwScancode = this->context->GetWindow()->GetLastScancode();
     this->context->GetWindow()->SetLastScancode(-1);
@@ -405,14 +499,32 @@ void GameEngine::StartFrame() const {
             break;
     }
 
-    // Controller equivalents of the above meta-hotkeys, for platforms with no keyboard
-    // (Xbox). Routed through ImGui's gamepad key state -- same mechanism the existing
-    // View-button menu toggle uses -- rather than the N64 controller button system,
-    // since neither of these has a real N64 button (the N64 pad has no clickable
-    // sticks): they're meta actions, not gameplay input.
-    if (ImGui::IsKeyPressed(ImGuiKey_GamepadL3, false)) {
-        // Toggle HD Assets (same action/CVar as the TAB key above)
-        CVarSetInteger("gEnhancements.Mods.AlternateAssets", !CVarGetInteger("gEnhancements.Mods.AlternateAssets", 0));
+    // Controller equivalent of the TAB hotkey above, for platforms with no keyboard
+    // (Xbox). Polled directly via SDL rather than through ImGui's gamepad key state --
+    // unlike the View/Start check below, which is confirmed working, ImGuiKey_GamepadL3
+    // didn't register a press in testing, and this repo has no vendored copy of ImGui's
+    // SDL2 backend to confirm whether its button table even maps
+    // SDL_CONTROLLER_BUTTON_LEFTSTICK to it in the pinned version. Checks every
+    // connected controller regardless of assigned port, since this is a global meta
+    // action, not per-player gameplay input -- and unlike ImGui::IsKeyPressed, a raw SDL
+    // button query is "is held", not "was just pressed", so edge detection is manual.
+    {
+        static bool wasL3Down = false;
+        bool isL3Down = false;
+        auto connectedDeviceManager = Ship::Context::GetRawInstance()->GetControlDeck()->GetConnectedPhysicalDeviceManager();
+        for (uint8_t port = 0; port < 4 && !isL3Down; port++) {
+            for (const auto& [instanceId, gamepad] : connectedDeviceManager->GetConnectedSDLGamepadsForPort(port)) {
+                if (SDL_GameControllerGetButton(gamepad, SDL_CONTROLLER_BUTTON_LEFTSTICK)) {
+                    isL3Down = true;
+                    break;
+                }
+            }
+        }
+        if (isL3Down && !wasL3Down) {
+            // Toggle HD Assets (same action/CVar as the TAB key above)
+            CVarSetInteger("gEnhancements.Mods.AlternateAssets", !CVarGetInteger("gEnhancements.Mods.AlternateAssets", 0));
+        }
+        wasL3Down = isL3Down;
     }
 
     // Reset requires holding View+Start together for ~1s rather than a single button,

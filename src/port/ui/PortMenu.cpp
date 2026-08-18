@@ -1,6 +1,7 @@
 #include "PortMenu.h"
 #include "UIWidgets.h"
 #include "port/Game.h"
+#include "port/Engine.h"
 #include "ship/window/gui/GuiMenuBar.h"
 #include "ship/window/gui/GuiElement.h"
 #include <variant>
@@ -133,6 +134,23 @@ void PortMenu::AddSettings() {
                      .Max(2.0f)
                      .DefaultValue(1.0f)
                      .Format("%.1f")
+                     .Step(0.1f));
+
+    AddWidget(path, "UI Scale: %.0f%%", WIDGET_CVAR_SLIDER_FLOAT)
+        .CVar("gSettings.Menu.UIScaleMultiplier")
+        .Callback([](WidgetInfo& info) {
+            if (GameEngine::Instance != nullptr) {
+                GameEngine::Instance->RecomputeAndApplyUiScale();
+            }
+        })
+        .Options(FloatSliderOptions()
+                     .Tooltip("Fine-tunes the automatic menu scale that's applied based on your output "
+                              "resolution (e.g. 4K on Xbox). Layered on top of that automatic scale, so 100% "
+                              "here still means \"correctly sized for your display\", not \"original size\".")
+                     .IsPercentage()
+                     .Min(0.8f)
+                     .Max(1.5f)
+                     .DefaultValue(1.0f)
                      .Step(0.1f));
     AddWidget(path, "Controller pak screen", WIDGET_CVAR_CHECKBOX)
         .CVar("gControllerPakScreen")
