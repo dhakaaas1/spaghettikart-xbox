@@ -190,11 +190,6 @@ void PortMenu::AddSettings() {
         .CVar("gEnhancements.Mods.AlternateAssetsHotkey")
         .Options(
             CheckboxOptions().Tooltip("Allows pressing the Tab key to toggle alternate assets").DefaultValue(true));
-    AddWidget(path, "Use Alternate/HD Assets", WIDGET_CVAR_CHECKBOX)
-        .CVar("gEnhancements.Mods.AlternateAssets")
-        .Options(CheckboxOptions().Tooltip(
-            "Toggles alternate/HD assets directly from the menu -- same effect as the Tab key hotkey "
-            "above, for controller-only setups with no keyboard (e.g. Xbox)."));
 #ifndef __SWITCH__
     AddWidget(path, "Open App Files Folder", WIDGET_BUTTON)
         .Callback([](WidgetInfo& info) {
