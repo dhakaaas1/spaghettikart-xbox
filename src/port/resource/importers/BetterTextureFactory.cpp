@@ -8,16 +8,49 @@
 
 namespace MK64 {
 
-// originalWidth/originalHeight are the *base game's* declared dimensions for this
-// resource path (read from the binary resource before this is called) -- a mod's PNG
-// replacement is very often a different resolution (that's the whole point of an HD
-// texture pack), and HByteScale/VPixelScale are how the rest of the renderer's texture
-// pipeline (interpreter.cpp: tile sizing, TMEM addressing, UV/sample-window math -- it's
-// consulted at well over a dozen call sites, not just the final upload step) knows to
-// treat this texture as N times larger than what the game's own display-list commands
-// declare, rather than misreading/mis-sampling it at the original's dimensions.
+// Bytes per texel for each original N64 texture format, matching the "Nbpp" bit-depth
+// each enum value is named for (see libultraship/include/fast/resource/type/Texture.h).
+// Needed because loadPngTexture's replacement is always decoded to RGBA32 (4 bytes/texel)
+// regardless of what format the base game's original texture used -- a texture stored
+// as, say, IA16/RGBA16 (2 bytes/texel) needs an *additional* 2x factor on top of the
+// pixel-dimension ratio to get a correct byte-stride scale, or the interpreter
+// mis-strides through the uploaded buffer.
+static float BytesPerTexel(Fast::TextureType type) {
+    switch (type) {
+        case Fast::TextureType::RGBA32bpp:
+            return 4.0f;
+        case Fast::TextureType::RGBA16bpp:
+        case Fast::TextureType::GrayscaleAlpha16bpp:
+            return 2.0f;
+        case Fast::TextureType::Palette8bpp:
+        case Fast::TextureType::Grayscale8bpp:
+        case Fast::TextureType::GrayscaleAlpha8bpp:
+            return 1.0f;
+        case Fast::TextureType::Palette4bpp:
+        case Fast::TextureType::Grayscale4bpp:
+        case Fast::TextureType::GrayscaleAlpha4bpp:
+            return 0.5f;
+        default:
+            return 4.0f;
+    }
+}
+
+// originalWidth/originalHeight/originalType are the *base game's* declared dimensions
+// and pixel format for this resource path (read from the binary resource before this is
+// called) -- a mod's PNG replacement is very often a different resolution (that's the
+// whole point of an HD texture pack) AND a different, always-32bpp pixel format (PNGs
+// are decoded to RGBA32 unconditionally below, regardless of what format the original
+// used), and HByteScale/VPixelScale are how the rest of the renderer's texture pipeline
+// (interpreter.cpp: tile sizing, TMEM addressing, UV/sample-window math -- consulted at
+// well over a dozen call sites, not just the final upload step) knows to treat this
+// texture as N times larger than what the game's own display-list commands declare,
+// rather than misreading/mis-sampling it at the original's dimensions. HByteScale
+// specifically drives *byte*-stride math, so it must account for the pixel-format
+// change (bytes/texel), not just the pixel-count change -- VPixelScale is a pure row
+// count and doesn't need that adjustment.
 std::shared_ptr<Ship::IResource> loadPngTexture(std::shared_ptr<Ship::File> filePng, std::shared_ptr<Ship::ResourceInitData> initData,
-                                                 uint32_t originalWidth, uint32_t originalHeight) {
+                                                 uint32_t originalWidth, uint32_t originalHeight,
+                                                 Fast::TextureType originalType) {
     auto texture = std::make_shared<Fast::Texture>(initData);
 
     int height, width = 0;
@@ -29,7 +62,8 @@ std::shared_ptr<Ship::IResource> loadPngTexture(std::shared_ptr<Ship::File> file
     texture->ImageDataSize = texture->Width * texture->Height * 4;
     texture->Flags = TEX_FLAG_LOAD_AS_IMG;
     if (originalWidth > 0 && originalHeight > 0) {
-        texture->HByteScale = (float)texture->Width / (float)originalWidth;
+        float bytesPerTexelRatio = BytesPerTexel(Fast::TextureType::RGBA32bpp) / BytesPerTexel(originalType);
+        texture->HByteScale = ((float)texture->Width / (float)originalWidth) * bytesPerTexelRatio;
         texture->VPixelScale = (float)texture->Height / (float)originalHeight;
     }
     return texture;
@@ -54,7 +88,7 @@ ResourceFactoryBinaryTextureV0::ReadResource(std::shared_ptr<Ship::File> file,
         initData->Path + ext);
 
         if (filePng != nullptr) {
-            return loadPngTexture(filePng, initData, originalWidth, originalHeight);
+            return loadPngTexture(filePng, initData, originalWidth, originalHeight, originalType);
         }
     }
 
@@ -87,7 +121,7 @@ ResourceFactoryBinaryTextureV1::ReadResource(std::shared_ptr<Ship::File> file,
         initData->Path + ext);
 
         if (filePng != nullptr) {
-            return loadPngTexture(filePng, initData, originalWidth, originalHeight);
+            return loadPngTexture(filePng, initData, originalWidth, originalHeight, originalType);
         }
     }
 
