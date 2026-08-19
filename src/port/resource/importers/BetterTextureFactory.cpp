@@ -8,7 +8,16 @@
 
 namespace MK64 {
 
-std::shared_ptr<Ship::IResource> loadPngTexture(std::shared_ptr<Ship::File> filePng, std::shared_ptr<Ship::ResourceInitData> initData) {
+// originalWidth/originalHeight are the *base game's* declared dimensions for this
+// resource path (read from the binary resource before this is called) -- a mod's PNG
+// replacement is very often a different resolution (that's the whole point of an HD
+// texture pack), and HByteScale/VPixelScale are how the rest of the renderer's texture
+// pipeline (interpreter.cpp: tile sizing, TMEM addressing, UV/sample-window math -- it's
+// consulted at well over a dozen call sites, not just the final upload step) knows to
+// treat this texture as N times larger than what the game's own display-list commands
+// declare, rather than misreading/mis-sampling it at the original's dimensions.
+std::shared_ptr<Ship::IResource> loadPngTexture(std::shared_ptr<Ship::File> filePng, std::shared_ptr<Ship::ResourceInitData> initData,
+                                                 uint32_t originalWidth, uint32_t originalHeight) {
     auto texture = std::make_shared<Fast::Texture>(initData);
 
     int height, width = 0;
@@ -19,6 +28,10 @@ std::shared_ptr<Ship::IResource> loadPngTexture(std::shared_ptr<Ship::File> file
     texture->Type = Fast::TextureType::RGBA32bpp;
     texture->ImageDataSize = texture->Width * texture->Height * 4;
     texture->Flags = TEX_FLAG_LOAD_AS_IMG;
+    if (originalWidth > 0 && originalHeight > 0) {
+        texture->HByteScale = (float)texture->Width / (float)originalWidth;
+        texture->VPixelScale = (float)texture->Height / (float)originalHeight;
+    }
     return texture;
 }
 
@@ -31,21 +44,24 @@ ResourceFactoryBinaryTextureV0::ReadResource(std::shared_ptr<Ship::File> file,
         return nullptr;
     }
 
+    auto reader = std::get<std::shared_ptr<Ship::BinaryReader>>(file->Reader);
+    auto originalType = (Fast::TextureType)reader->ReadUInt32();
+    auto originalWidth = reader->ReadUInt32();
+    auto originalHeight = reader->ReadUInt32();
+
     for (const auto& ext : extension) {
         auto filePng = Ship::Context::GetRawInstance()->GetResourceManager()->LoadFileProcess(
         initData->Path + ext);
 
         if (filePng != nullptr) {
-            return loadPngTexture(filePng, initData);
+            return loadPngTexture(filePng, initData, originalWidth, originalHeight);
         }
     }
 
     auto texture = std::make_shared<Fast::Texture>(initData);
-    auto reader = std::get<std::shared_ptr<Ship::BinaryReader>>(file->Reader);
-
-    texture->Type = (Fast::TextureType)reader->ReadUInt32();
-    texture->Width = reader->ReadUInt32();
-    texture->Height = reader->ReadUInt32();
+    texture->Type = originalType;
+    texture->Width = originalWidth;
+    texture->Height = originalHeight;
     texture->ImageDataSize = reader->ReadUInt32();
     texture->ImageData = new uint8_t[texture->ImageDataSize];
 
@@ -61,21 +77,24 @@ ResourceFactoryBinaryTextureV1::ReadResource(std::shared_ptr<Ship::File> file,
         return nullptr;
     }
 
+    auto reader = std::get<std::shared_ptr<Ship::BinaryReader>>(file->Reader);
+    auto originalType = (Fast::TextureType)reader->ReadUInt32();
+    auto originalWidth = reader->ReadUInt32();
+    auto originalHeight = reader->ReadUInt32();
+
     for (const auto& ext : extension) {
         auto filePng = Ship::Context::GetRawInstance()->GetResourceManager()->LoadFileProcess(
         initData->Path + ext);
 
         if (filePng != nullptr) {
-            return loadPngTexture(filePng, initData);
+            return loadPngTexture(filePng, initData, originalWidth, originalHeight);
         }
     }
 
     auto texture = std::make_shared<Fast::Texture>(initData);
-    auto reader = std::get<std::shared_ptr<Ship::BinaryReader>>(file->Reader);
-
-    texture->Type = (Fast::TextureType)reader->ReadUInt32();
-    texture->Width = reader->ReadUInt32();
-    texture->Height = reader->ReadUInt32();
+    texture->Type = originalType;
+    texture->Width = originalWidth;
+    texture->Height = originalHeight;
     texture->Flags = reader->ReadUInt32();
     texture->HByteScale = reader->ReadFloat();
     texture->VPixelScale = reader->ReadFloat();
