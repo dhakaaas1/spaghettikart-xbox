@@ -1060,6 +1060,11 @@ void func_80290338(void) {
     gQuitToMenuTransitionCounter = 5;
     gGotoMode = MAIN_MENU_FROM_QUIT;
     gTourComplete = false;
+    // Stop when quitting -- same fix as Retry below; this and the next two functions
+    // were missing it, leaving race-end music to keep playing over the next menu.
+    if(HMAS_IsPlaying(HMAS_MUSIC)) {
+        HMAS_Stop(HMAS_MUSIC);
+    }
 }
 
 // Driver Change
@@ -1068,6 +1073,10 @@ void func_80290360(void) {
     gQuitToMenuTransitionCounter = 5;
     gGotoMode = PLAYER_SELECT_MENU_FROM_QUIT;
     gTourComplete = false;
+    // Stop when changing driver
+    if(HMAS_IsPlaying(HMAS_MUSIC)) {
+        HMAS_Stop(HMAS_MUSIC);
+    }
 }
 
 // Course Change
@@ -1076,6 +1085,10 @@ void func_80290388(void) {
     gQuitToMenuTransitionCounter = 5;
     gGotoMode = COURSE_SELECT_MENU_FROM_QUIT;
     gTourComplete = false;
+    // Stop when changing course
+    if(HMAS_IsPlaying(HMAS_MUSIC)) {
+        HMAS_Stop(HMAS_MUSIC);
+    }
 }
 
 // Retry
