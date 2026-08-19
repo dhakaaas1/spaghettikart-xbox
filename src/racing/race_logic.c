@@ -1060,8 +1060,16 @@ void func_80290338(void) {
     gQuitToMenuTransitionCounter = 5;
     gGotoMode = MAIN_MENU_FROM_QUIT;
     gTourComplete = false;
-    // Stop when quitting -- same fix as Retry below; this and the next two functions
-    // were missing it, leaving race-end music to keep playing over the next menu.
+    // Stop when quitting. The race-end results music (MUSIC_SEQ_FINISH_*/
+    // MUSIC_SEQ_VS_BATTLE_RESULTS etc.) is started via play_sequence2(), which -- unlike
+    // its sibling play_sequence() -- never calls HMAS_Stop and isn't reliably routed
+    // through HMAS at all, so that alone doesn't stop it. func_800C3448(0x100100FF)/
+    // (0x110100FF) is the actual "stop both legacy sequence players" idiom already used
+    // elsewhere in src/audio/external.c right before every play_sequence2() call that
+    // starts this same results music in the first place (see e.g. the BATTLE results
+    // case around external.c:2595-2596).
+    func_800C3448(0x100100FF);
+    func_800C3448(0x110100FF);
     if(HMAS_IsPlaying(HMAS_MUSIC)) {
         HMAS_Stop(HMAS_MUSIC);
     }
@@ -1073,7 +1081,9 @@ void func_80290360(void) {
     gQuitToMenuTransitionCounter = 5;
     gGotoMode = PLAYER_SELECT_MENU_FROM_QUIT;
     gTourComplete = false;
-    // Stop when changing driver
+    // Stop when changing driver -- see func_80290338 above for why both calls are needed.
+    func_800C3448(0x100100FF);
+    func_800C3448(0x110100FF);
     if(HMAS_IsPlaying(HMAS_MUSIC)) {
         HMAS_Stop(HMAS_MUSIC);
     }
@@ -1085,7 +1095,9 @@ void func_80290388(void) {
     gQuitToMenuTransitionCounter = 5;
     gGotoMode = COURSE_SELECT_MENU_FROM_QUIT;
     gTourComplete = false;
-    // Stop when changing course
+    // Stop when changing course -- see func_80290338 above for why both calls are needed.
+    func_800C3448(0x100100FF);
+    func_800C3448(0x110100FF);
     if(HMAS_IsPlaying(HMAS_MUSIC)) {
         HMAS_Stop(HMAS_MUSIC);
     }
